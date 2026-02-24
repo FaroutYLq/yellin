@@ -15,12 +15,18 @@ pip install .
 
 ## Usage
 
+Provide your observed events and the **signal** cumulative distribution
+F(s) (fraction of expected signal below s). Use `uniform_spectrum` only when
+the signal is uniform in your observable range; otherwise use your signal’s CDF.
+
 ```python
 import numpy as np
 from yellin import upper_limit, SpectrumCDF, uniform_spectrum
 
 # Event values (e.g. energies) and signal CDF
 events = np.array([...])  # Your observed events
+# Use the CDF of your signal of interest. uniform_spectrum is for a uniform
+# signal in [s_min, s_max]; replace with your signal's CDF if different.
 spectrum_cdf = SpectrumCDF(uniform_spectrum(s_min=0, s_max=100))
 
 # 90% confidence upper limit
@@ -31,6 +37,36 @@ print(f"90% CL upper limit: {ul}")
 ul_signal = upper_limit(
     events, spectrum_cdf, C=0.9, known_background=10.0
 )
+```
+
+### Custom spectrum
+
+The spectrum CDF F(s) must be **normalized**: F(s) must be non-decreasing and
+map your observable range to [0, 1], i.e. F(s_min) = 0 and F(s_max) = 1 (or
+the appropriate limits for your support). The method uses only the shape of
+the CDF, not the absolute normalization of the signal.
+
+Example: signal PDF proportional to s² on [s_min, s_max]. The CDF is
+F(s) = (s³ − s_min³) / (s_max³ − s_min³), which is already normalized to
+[0, 1] over that interval:
+
+```python
+import numpy as np
+from yellin import upper_limit, SpectrumCDF
+
+def power_cdf(s_min: float, s_max: float, index: float = 2.0):
+    """CDF for PDF(s) ∝ s^index on [s_min, s_max]. Normalized to [0, 1]."""
+    a = index + 1.0
+    low = s_min**a
+    span = s_max**a - low
+    def F(s: np.ndarray) -> np.ndarray:
+        s = np.asarray(s, dtype=float)
+        return np.clip((s**a - low) / span, 0.0, 1.0)
+    return F
+
+events = np.array([...])
+spectrum_cdf = SpectrumCDF(power_cdf(s_min=0.0, s_max=100.0, index=2.0))
+ul = upper_limit(events, spectrum_cdf, C=0.9)
 ```
 
 ## Lookup tables

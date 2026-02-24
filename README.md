@@ -42,12 +42,12 @@ ul_signal = upper_limit(
 ### Custom spectrum
 
 The spectrum CDF $F(s)$ must be **normalized**: $F(s)$ must be non-decreasing
-and map your observable range to $[0, 1]$, i.e. $F(s_{\mathrm{min}}) = 0$ and
-$F(s_{\mathrm{max}}) = 1$ (or the appropriate limits for your support). The method
+and map your observable range to $[0, 1]$, i.e. $F(s\_{\mathrm{min}}) = 0$ and
+$F(s\_{\mathrm{max}}) = 1$ (or the appropriate limits for your support). The method
 uses only the shape of the CDF, not the absolute normalization of the signal.
 
-Example: signal PDF proportional to $s^2$ on $[s_{\mathrm{min}}, s_{\mathrm{max}}]$. The CDF is
-$F(s) = (s^3 - s_{\mathrm{min}}^3) / (s_{\mathrm{max}}^3 - s_{\mathrm{min}}^3)$, normalized to
+Example: signal PDF proportional to $s^2$ on $[s\_{\mathrm{min}}, s\_{\mathrm{max}}]$. The CDF is
+$F(s) = (s^3 - s\_{\mathrm{min}}^3) / (s\_{\mathrm{max}}^3 - s\_{\mathrm{min}}^3)$, normalized to
 $[0, 1]$ over that interval:
 
 ```python
@@ -74,13 +74,13 @@ ul = upper_limit(events, spectrum_cdf, C=0.9)
 The method relies on two precomputed tables. Both must exist under
 `src/yellin/data/` (or be generated there) for `upper_limit` to work.
 
-### $C_\infty$ table (`c_infinity_table.npz`)
+### $C\_\infty$ table (`c_infinity_table.npz`)
 
-- **Role:** $C_\infty(y; f) = P(y_{\mathrm{min}} > y)$ in the Gaussian/Brownian limit
+- **Role:** $C\_\infty(y; f) = P(y\_{\mathrm{min}} > y)$ in the Gaussian/Brownian limit
   (paper Section II, Appendix A). For an interval with fraction $f$ and scaled
-  excess $y = (n - x)/\sqrt{x}$, $C_\infty$ gives the probability that the data
+  excess $y = (n - x)/\sqrt{x}$, $C\_\infty$ gives the probability that the data
   reject the assumed signal at least this strongly.
-- **Content:** A 2D grid over $(y, f)$: $C_\infty$ is tabulated for $y$ in
+- **Content:** A 2D grid over $(y, f)$: $C\_\infty$ is tabulated for $y$ in
   $[-4, 4]$ and $f$ in $[0.01, 0.99]$, then used via interpolation. Values
   outside the grid are clipped.
 - **Format:** NumPy `.npz` with arrays `y_grid`, `f_grid`, and `C`.
@@ -93,20 +93,20 @@ The method relies on two precomputed tables. Both must exist under
   Defaults: 20 f points, 50 y points, 15 000 Monte Carlo trials per f, ~1–2
   minutes. The script writes `src/yellin/data/c_infinity_table.npz`.
 
-### $\bar{C}_{\mathrm{max}}$ table (`c_bar_max_table.pkl`)
+### $\bar{C}\_{\mathrm{max}}$ table (`c_bar_max_table.pkl`)
 
-- **Role:** $\bar{C}_{\mathrm{max}}(C, f_{\mathrm{min}}, \mu)$ is the calibration value such
+- **Role:** $\bar{C}\_{\mathrm{max}}(C, f\_{\mathrm{min}}, \mu)$ is the calibration value such
   that a fraction $C$ of experiments (no unknown background) have
-  $C_{\mathrm{max}} < \bar{C}_{\mathrm{max}}$. The upper limit is the $\mu$ for which
-  observed $C_{\mathrm{max}} = \bar{C}_{\mathrm{max}}(C, f_{\mathrm{min}}, \mu)$ (paper Section II).
-- **Content:** For each $(C, f_{\mathrm{min}})$ pair, the table stores
-  $\bar{C}_{\mathrm{max}}$ at a discrete set of $\mu$ values. Supported $(C,
-  f_{\mathrm{min}})$: $C \in \{0.9, 0.95\}$, $f_{\mathrm{min}} \in \{0, 0.02, 0.1, 0.2,
-  0.5\}$. For $\mu$ larger than the tabulated range, $\bar{C}_{\mathrm{max}}$ is
+  $C\_{\mathrm{max}} < \bar{C}\_{\mathrm{max}}$. The upper limit is the $\mu$ for which
+  observed $C\_{\mathrm{max}} = \bar{C}\_{\mathrm{max}}(C, f\_{\mathrm{min}}, \mu)$ (paper Section II).
+- **Content:** For each $(C, f\_{\mathrm{min}})$ pair, the table stores
+  $\bar{C}\_{\mathrm{max}}$ at a discrete set of $\mu$ values. Supported $(C,
+  f\_{\mathrm{min}})$: $C \in \{0.9, 0.95\}$, $f\_{\mathrm{min}} \in \{0, 0.02, 0.1, 0.2,
+  0.5\}$. For $\mu$ larger than the tabulated range, $\bar{C}\_{\mathrm{max}}$ is
   extrapolated as $A + B/\sqrt{\mu}$ (paper Fig. 2).
 - **Format:** Python pickle with a dict: `{"tables": {...}, "fits": {...}}`.
-  Keys in `tables` are $(C, f_{\mathrm{min}})$; values are `(mu_array, cbar_array)`.
-  Keys in `fits` are $(C, f_{\mathrm{min}})$; values are $(A, B)$ for extrapolation.
+  Keys in `tables` are $(C, f\_{\mathrm{min}})$; values are `(mu_array, cbar_array)`.
+  Keys in `fits` are $(C, f\_{\mathrm{min}})$; values are $(A, B)$ for extrapolation.
 - **Generation:** Two options:
 
   1. **Full table** (better for production; slower):
@@ -116,7 +116,7 @@ The method relies on two precomputed tables. Both must exist under
      ```
 
      Uses $\mu = 55, 80, 120, \ldots, 2000$, 200 trials per
-     $(C, f_{\mathrm{min}}, \mu)$. Can take tens of minutes depending on hardware.
+     $(C, f\_{\mathrm{min}}, \mu)$. Can take tens of minutes depending on hardware.
 
   2. **Quick table** (faster; coarser for testing/CI):
 
@@ -136,9 +136,9 @@ The method relies on two precomputed tables. Both must exist under
 
 | Table        | File                     | Purpose              | Typical runtime |
 |-------------|--------------------------|----------------------|------------------|
-| $C_\infty$  | `c_infinity_table.npz`   | Brownian $C_\infty(y; f)$ | ~1–2 min   |
-| $\bar{C}_{\mathrm{max}}$ (full) | `c_bar_max_table.pkl` | $\bar{C}_{\mathrm{max}}(C,f_{\mathrm{min}},\mu)$ | 10+ min |
-| $\bar{C}_{\mathrm{max}}$ (quick)| `c_bar_max_table.pkl` | Same, fewer points | ~1–2 min  |
+| $C\_\infty$  | `c_infinity_table.npz`   | Brownian $C\_\infty(y; f)$ | ~1–2 min   |
+| $\bar{C}\_{\mathrm{max}}$ (full) | `c_bar_max_table.pkl` | $\bar{C}\_{\mathrm{max}}(C,f\_{\mathrm{min}},\mu)$ | 10+ min |
+| $\bar{C}\_{\mathrm{max}}$ (quick)| `c_bar_max_table.pkl` | Same, fewer points | ~1–2 min  |
 
 Commit the generated files under `src/yellin/data/` so that CI and other
 users get consistent results without regenerating.

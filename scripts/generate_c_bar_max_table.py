@@ -68,8 +68,8 @@ if __name__ == "__main__":
     fmin_vals = [0.0, 0.02, 0.1, 0.2, 0.5]
     mu_vals = [55, 80, 120, 200, 350, 500, 800, 1200, 2000]
 
-    print("Generating C̄Max tables (this may take 5-10 minutes)...")
-    tables, fits = _build_tables(C_vals, fmin_vals, mu_vals, n_trials=200)
+    print("Generating C̄Max tables (full; may take 10-20 minutes)...")
+    tables, fits = _build_tables(C_vals, fmin_vals, mu_vals, n_trials=500)
 
     import pickle
     with open(out / "c_bar_max_table.pkl", "wb") as f:

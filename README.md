@@ -169,26 +169,14 @@ under `src/yellin/data/` (or be generated there) for `upper_limit` to work.
 - **Format:** Python pickle with a dict: `{"tables": {...}, "fits": {...}}`.
   Keys in `tables` are $(C, f\_{\mathrm{min}})$; values are `(mu_array, cbar_array)`.
   Keys in `fits` are $(C, f\_{\mathrm{min}})$; values are $(A, B)$ for extrapolation.
-- **Generation:** Two options:
+- **Generation:**
 
-  1. **Full table** (better for production; slower):
+  ```bash
+  PYTHONPATH=src python scripts/generate_c_bar_max_table.py
+  ```
 
-     ```bash
-     PYTHONPATH=src python scripts/generate_c_bar_max_table.py
-     ```
-
-     Uses $\mu = 55, 80, 120, \ldots, 2000$, 200 trials per
-     $(C, f\_{\mathrm{min}}, \mu)$. Can take tens of minutes depending on hardware.
-
-  2. **Quick table** (faster; coarser for testing/CI):
-
-     ```bash
-     PYTHONPATH=src python scripts/generate_c_bar_max_quick.py
-     ```
-
-     Fewer $\mu$ points and 80 trials per point; typically ~1–2 minutes.
-     Adequate for tests and quick checks; for publication-quality limits, use
-     the full script and consider increasing `n_trials` and the $\mu$ grid.
+  Uses $\mu = 55, 80, 120, \ldots, 2000$, 200 trials per
+  $(C, f\_{\mathrm{min}}, \mu)$. Can take tens of minutes depending on hardware.
 
 - **Location:** The library loads `src/yellin/data/c_bar_max_table.pkl` by
   default. If that file is missing, `c_bar_max` and thus `upper_limit` raise
@@ -215,7 +203,6 @@ under `src/yellin/data/` (or be generated there) for `upper_limit` to work.
 |-------------|--------------------------|----------------------|------------------|
 | $C\_\infty$  | `c_infinity_table.npz`   | Brownian $C\_\infty(y; f)$ | ~1–2 min   |
 | $\bar{C}\_{\mathrm{max}}$ (full) | `c_bar_max_table.pkl` | $\bar{C}\_{\mathrm{max}}(C,f\_{\mathrm{min}},\mu)$ | 10+ min |
-| $\bar{C}\_{\mathrm{max}}$ (quick)| `c_bar_max_table.pkl` | Same, fewer points | ~1–2 min  |
 | $\bar{C}\_{\mathrm{max}}$ (binned) | `c_bar_max_binned_table.pkl` | Binned calibration for fixed `n_bins` | depends on `n_bins` / trials |
 
 Commit the generated files under `src/yellin/data/` so that CI and other

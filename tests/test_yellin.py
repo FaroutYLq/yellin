@@ -3,9 +3,18 @@
 import numpy as np
 import pytest
 
-from yellin import SpectrumCDF, uniform_spectrum, upper_limit, c_infinity
+from yellin import (
+    SpectrumCDF,
+    c_bar_max,
+    c_bar_max_binned,
+    c_infinity,
+    uniform_spectrum,
+    upper_limit,
+    upper_limit_binned,
+)
+from yellin.binned import compute_CMax_binned, events_to_binned_counts
 from yellin.transform import events_to_F, fm_from_F
-from yellin.intervals import candidate_intervals, compute_CMax
+from yellin.intervals import candidate_intervals
 
 
 class TestTransform:
@@ -96,3 +105,54 @@ class TestUpperLimit:
         ul = upper_limit(events, spec, C=0.9, known_background=10.0)
         ul_total = upper_limit(events, spec, C=0.9)
         assert ul < ul_total
+
+
+class TestBinnedSupport:
+    """Test binned-data support (paper Section IV)."""
+
+    def test_events_to_binned_counts_uniform(self):
+        spec = SpectrumCDF(uniform_spectrum(0, 1))
+        events = np.array([0.1, 0.2, 0.85])
+        counts = events_to_binned_counts(events, spec, n_bins=5)
+        np.testing.assert_array_equal(counts, np.array([1, 1, 0, 0, 1]))
+
+    def test_compute_cmax_binned_matches_bruteforce(self):
+        counts = np.array([3, 0, 2, 1, 4], dtype=int)
+        mu = 20.0
+        fmin = 0.2
+
+        def fake_c_inf(y: float, f: float) -> float:
+            return float(-y + 0.5 * f)
+
+        cmax = compute_CMax_binned(counts, mu, fmin=fmin, c_infinity_fn=fake_c_inf)
+
+        n_bins = counts.size
+        best = 0.0
+        for i in range(n_bins):
+            for j in range(i + 1, n_bins + 1):
+                f = (j - i) / n_bins
+                if f <= fmin:
+                    continue
+                n = float(np.sum(counts[i:j]))
+                x = mu * f
+                y = (n - x) / np.sqrt(x)
+                c = fake_c_inf(y, f)
+                if c > best:
+                    best = c
+
+        assert cmax == pytest.approx(best)
+
+    def test_c_bar_max_binned_fallback(self):
+        mu = 200.0
+        c_ref = c_bar_max(0.9, 0.0, mu)
+        c_bin = c_bar_max_binned(0.9, 0.0, mu, n_bins=100, fallback_unbinned=True)
+        assert c_bin == pytest.approx(c_ref)
+
+    def test_upper_limit_binned(self):
+        rng = np.random.default_rng(44)
+        events = rng.uniform(0, 1, 120)
+        spec = SpectrumCDF(uniform_spectrum(0, 1))
+        counts = events_to_binned_counts(events, spec, n_bins=100)
+        ul = upper_limit_binned(counts, C=0.9)
+        assert ul > 0
+        assert ul < 500

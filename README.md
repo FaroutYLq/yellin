@@ -109,6 +109,13 @@ ul_binned = upper_limit_binned(counts, C=0.9)
 print(f"90% CL upper limit (binned): {ul_binned}")
 ```
 
+Here, `fmin` is omitted, so the default `fmin=0.0` is used. This call is
+equivalent to:
+
+```python
+ul_binned = upper_limit_binned(counts, C=0.9, fmin=0.0)
+```
+
 If your data are already binned in equal-width $F$ bins:
 
 ```python

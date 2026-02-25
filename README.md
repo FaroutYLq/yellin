@@ -39,6 +39,20 @@ ul_signal = upper_limit(
 )
 ```
 
+### Example workflow
+
+When you run the call above, the library:
+
+1. **Transform:** Maps `events` into the unit interval using the signal CDF
+   $F(s)$ (each event becomes its CDF value).
+2. **Solve:** Finds the total expected count $\mu$ (signal + background) for
+   which the observed optimum-interval statistic $C_{\mathrm{max}}$ equals the
+   calibration $\bar{C}_{\mathrm{max}}(C, f_{\mathrm{min}}, \mu)$ from the
+   lookup tables.
+3. **Return:** Reports the 90% CL upper limit on **signal** as
+   $\mu - \texttt{known\_background}$. So `ul_signal` is the limit on signal
+   alone, with 10 expected background events already subtracted.
+
 ### Custom spectrum
 
 The spectrum CDF $F(s)$ must be **normalized**: $F(s)$ must be non-decreasing

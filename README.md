@@ -83,10 +83,51 @@ spectrum_cdf = SpectrumCDF(power_cdf(s_min=0.0, s_max=100.0, index=2.0))
 ul = upper_limit(events, spectrum_cdf, C=0.9)
 ```
 
+### Binned data (paper Section IV)
+
+The package now supports the binned variant for very high statistics:
+intervals are restricted to one or more consecutive bins that are equal-width
+in $F$.
+
+Use this when you have binned counts (or want to bin events first):
+
+```python
+import numpy as np
+from yellin import (
+    SpectrumCDF,
+    events_to_binned_counts,
+    uniform_spectrum,
+    upper_limit_binned,
+)
+
+# Raw events -> equal-width bins in F-space
+events = np.array([...])
+spectrum_cdf = SpectrumCDF(uniform_spectrum(0, 100))
+counts = events_to_binned_counts(events, spectrum_cdf, n_bins=1000)
+
+ul_binned = upper_limit_binned(counts, C=0.9)
+print(f"90% CL upper limit (binned): {ul_binned}")
+```
+
+If your data are already binned in equal-width $F$ bins:
+
+```python
+import numpy as np
+from yellin import upper_limit_binned
+
+counts = np.array([12, 8, 10, 5, 6, 11, ...], dtype=int)
+ul_binned = upper_limit_binned(counts, C=0.9, fmin=0.0)
+```
+
+By default, `upper_limit_binned` tries to load a dedicated binned calibration
+table (`c_bar_max_binned_table.pkl`) and falls back to the unbinned
+calibration if that file/key is unavailable. To require binned calibration
+strictly, set `fallback_unbinned_cbar=False`.
+
 ## Lookup tables
 
-The method relies on two precomputed tables. Both must exist under
-`src/yellin/data/` (or be generated there) for `upper_limit` to work.
+The core (unbinned) method relies on two precomputed tables. Both must exist
+under `src/yellin/data/` (or be generated there) for `upper_limit` to work.
 
 ### $C\_\infty$ table (`c_infinity_table.npz`)
 
@@ -146,6 +187,21 @@ The method relies on two precomputed tables. Both must exist under
   default. If that file is missing, `c_bar_max` and thus `upper_limit` raise
   `FileNotFoundError` with instructions to run one of the scripts above.
 
+### Binned $\bar{C}\_{\mathrm{max}}$ table (`c_bar_max_binned_table.pkl`)
+
+- **Role:** Calibration for `upper_limit_binned` with fixed bin count
+  (`n_bins`) as described in paper Section IV.
+- **Keying:** Entries are keyed by `(n_bins, C, fmin)`.
+- **Generation:**
+
+  ```bash
+  PYTHONPATH=src python scripts/generate_c_bar_max_binned_table.py --n-bins 1000
+  ```
+
+- **Fallback behavior:** If this table is missing (or a key is missing),
+  `upper_limit_binned` can fall back to unbinned `c_bar_max` unless
+  `fallback_unbinned_cbar=False`.
+
 ### Summary
 
 | Table        | File                     | Purpose              | Typical runtime |
@@ -153,6 +209,7 @@ The method relies on two precomputed tables. Both must exist under
 | $C\_\infty$  | `c_infinity_table.npz`   | Brownian $C\_\infty(y; f)$ | ~1–2 min   |
 | $\bar{C}\_{\mathrm{max}}$ (full) | `c_bar_max_table.pkl` | $\bar{C}\_{\mathrm{max}}(C,f\_{\mathrm{min}},\mu)$ | 10+ min |
 | $\bar{C}\_{\mathrm{max}}$ (quick)| `c_bar_max_table.pkl` | Same, fewer points | ~1–2 min  |
+| $\bar{C}\_{\mathrm{max}}$ (binned) | `c_bar_max_binned_table.pkl` | Binned calibration for fixed `n_bins` | depends on `n_bins` / trials |
 
 Commit the generated files under `src/yellin/data/` so that CI and other
 users get consistent results without regenerating.

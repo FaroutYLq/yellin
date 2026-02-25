@@ -50,7 +50,7 @@ When you run the call above, the library:
    calibration $\bar{C}_{\mathrm{max}}(C, f_{\mathrm{min}}, \mu)$ from the
    lookup tables.
 3. **Return:** Reports the 90% CL upper limit on **signal** as
-   $\mu - \texttt{known\_background}$. So `ul_signal` is the limit on signal
+   $\mu$ − `known_background`. So `ul_signal` is the limit on signal
    alone, with 10 expected background events already subtracted.
 
 ### Custom spectrum

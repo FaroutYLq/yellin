@@ -31,12 +31,14 @@ def pdf_to_cdf(
     s_min: float,
     s_max: float,
     n_grid: int = 4096,
+    **pdf_kwargs,
 ) -> Callable[[np.ndarray], np.ndarray]:
     """
     Build a normalized CDF from an arbitrary scaled PDF on [s_min, s_max].
 
     The input function can be any non-negative shape proportional to a PDF;
     absolute normalization is inferred numerically.
+    Additional keyword arguments are forwarded to `pdf`.
     """
     if s_max <= s_min:
         raise ValueError("s_max must be greater than s_min")
@@ -45,11 +47,17 @@ def pdf_to_cdf(
 
     s_grid = np.linspace(s_min, s_max, n_grid)
     try:
-        p_grid = np.asarray(pdf(s_grid), dtype=float)
+        p_grid = np.asarray(pdf(s_grid, **pdf_kwargs), dtype=float)
         if p_grid.shape != s_grid.shape:
-            p_grid = np.vectorize(lambda x: float(pdf(float(x))), otypes=[float])(s_grid)
+            p_grid = np.vectorize(
+                lambda x: float(pdf(float(x), **pdf_kwargs)),
+                otypes=[float],
+            )(s_grid)
     except Exception:
-        p_grid = np.vectorize(lambda x: float(pdf(float(x))), otypes=[float])(s_grid)
+        p_grid = np.vectorize(
+            lambda x: float(pdf(float(x), **pdf_kwargs)),
+            otypes=[float],
+        )(s_grid)
 
     if not np.all(np.isfinite(p_grid)):
         raise ValueError("pdf must return finite values on [s_min, s_max]")

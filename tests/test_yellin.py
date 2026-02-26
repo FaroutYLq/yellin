@@ -67,6 +67,17 @@ class TestSpectrumHelpers:
         cdf = pdf_to_cdf(scalar_pdf, 0.0, 1.0)
         assert cdf(np.array([0.5]))[0] == pytest.approx(0.125, abs=2e-3)
 
+    def test_pdf_to_cdf_forwards_kwargs(self):
+        def shifted_pdf(s, shift=0.0, scale=1.0):
+            s = np.asarray(s, dtype=float)
+            x = np.maximum(s - shift, 0.0)
+            return scale * x**2
+
+        cdf = pdf_to_cdf(shifted_pdf, 0.0, 1.0, shift=0.2, scale=3.0)
+        x = np.array([0.2, 0.6, 1.0])
+        expected = np.array([0.0, 0.125, 1.0])  # ((s-0.2)^3)/(0.8^3)
+        np.testing.assert_allclose(cdf(x), expected, atol=3e-3, rtol=0)
+
     def test_pdf_to_cdf_negative_raises(self):
         with pytest.raises(ValueError, match="non-negative"):
             pdf_to_cdf(lambda s: np.asarray(s, dtype=float) - 0.5, 0.0, 1.0)

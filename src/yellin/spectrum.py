@@ -26,6 +26,59 @@ def uniform_spectrum(s_min: float, s_max: float) -> Callable[[np.ndarray], np.nd
     return F
 
 
+def pdf_to_cdf(
+    pdf: Callable[[np.ndarray], np.ndarray] | Callable[[float], float],
+    s_min: float,
+    s_max: float,
+    n_grid: int = 4096,
+) -> Callable[[np.ndarray], np.ndarray]:
+    """
+    Build a normalized CDF from an arbitrary scaled PDF on [s_min, s_max].
+
+    The input function can be any non-negative shape proportional to a PDF;
+    absolute normalization is inferred numerically.
+    """
+    if s_max <= s_min:
+        raise ValueError("s_max must be greater than s_min")
+    if n_grid < 2:
+        raise ValueError("n_grid must be >= 2")
+
+    s_grid = np.linspace(s_min, s_max, n_grid)
+    try:
+        p_grid = np.asarray(pdf(s_grid), dtype=float)
+        if p_grid.shape != s_grid.shape:
+            p_grid = np.vectorize(lambda x: float(pdf(float(x))), otypes=[float])(s_grid)
+    except Exception:
+        p_grid = np.vectorize(lambda x: float(pdf(float(x))), otypes=[float])(s_grid)
+
+    if not np.all(np.isfinite(p_grid)):
+        raise ValueError("pdf must return finite values on [s_min, s_max]")
+
+    # Allow tiny negative numerical noise only.
+    neg_tol = 1e-12 * max(1.0, float(np.max(np.abs(p_grid))))
+    if np.any(p_grid < -neg_tol):
+        raise ValueError("pdf must be non-negative on [s_min, s_max]")
+    p_grid = np.maximum(p_grid, 0.0)
+
+    ds = np.diff(s_grid)
+    increments = 0.5 * (p_grid[:-1] + p_grid[1:]) * ds
+    cumulative = np.concatenate(([0.0], np.cumsum(increments)))
+    total = float(cumulative[-1])
+    if total <= 0:
+        raise ValueError("pdf integral on [s_min, s_max] must be positive")
+
+    cdf_grid = cumulative / total
+    cdf_grid = np.maximum.accumulate(np.clip(cdf_grid, 0.0, 1.0))
+    cdf_grid[0] = 0.0
+    cdf_grid[-1] = 1.0
+
+    def F(s: np.ndarray) -> np.ndarray:
+        s_arr = np.asarray(s, dtype=float)
+        return np.interp(s_arr, s_grid, cdf_grid, left=0.0, right=1.0)
+
+    return F
+
+
 class SpectrumCDF:
     """
     Callable spectrum CDF F(s) -> [0, 1].

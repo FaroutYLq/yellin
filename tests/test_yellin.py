@@ -8,6 +8,7 @@ from yellin import (
     c_bar_max,
     c_bar_max_binned,
     c_infinity,
+    pdf_to_cdf,
     uniform_spectrum,
     upper_limit,
     upper_limit_binned,
@@ -43,6 +44,36 @@ class TestTransform:
         F = np.array([0.2, 0.5, 0.9])
         # Gaps: 0.2, 0.3, 0.4, 0.1
         assert fm_from_F(F) == 0.4
+
+
+class TestSpectrumHelpers:
+    """Test spectrum helper utilities."""
+
+    def test_pdf_to_cdf_scaled_shape(self):
+        cdf = pdf_to_cdf(lambda s: 5.0 * np.asarray(s, dtype=float) ** 2, 0.0, 1.0)
+        x = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        np.testing.assert_allclose(cdf(x), x**3, atol=2e-3, rtol=0)
+
+    def test_pdf_to_cdf_scale_invariant(self):
+        cdf1 = pdf_to_cdf(lambda s: np.asarray(s, dtype=float) ** 2, 0.0, 1.0)
+        cdf2 = pdf_to_cdf(lambda s: 17.0 * np.asarray(s, dtype=float) ** 2, 0.0, 1.0)
+        x = np.linspace(0.0, 1.0, 50)
+        np.testing.assert_allclose(cdf1(x), cdf2(x), atol=1e-8, rtol=0)
+
+    def test_pdf_to_cdf_accepts_scalar_pdf(self):
+        def scalar_pdf(s: float) -> float:
+            return s * s if 0.0 <= s <= 1.0 else 0.0
+
+        cdf = pdf_to_cdf(scalar_pdf, 0.0, 1.0)
+        assert cdf(np.array([0.5]))[0] == pytest.approx(0.125, abs=2e-3)
+
+    def test_pdf_to_cdf_negative_raises(self):
+        with pytest.raises(ValueError, match="non-negative"):
+            pdf_to_cdf(lambda s: np.asarray(s, dtype=float) - 0.5, 0.0, 1.0)
+
+    def test_pdf_to_cdf_zero_integral_raises(self):
+        with pytest.raises(ValueError, match="must be positive"):
+            pdf_to_cdf(lambda s: np.zeros_like(np.asarray(s, dtype=float)), 0.0, 1.0)
 
 
 class TestCandidateIntervals:

@@ -60,6 +60,24 @@ and map your observable range to $[0, 1]$, i.e. $F(s\_{\mathrm{min}}) = 0$ and
 $F(s\_{\mathrm{max}}) = 1$ (or the appropriate limits for your support). The method
 uses only the shape of the CDF, not the absolute normalization of the signal.
 
+If you have an arbitrary function proportional to the signal PDF (not
+necessarily normalized), use `pdf_to_cdf`:
+
+```python
+import numpy as np
+from yellin import SpectrumCDF, pdf_to_cdf, upper_limit
+
+def scaled_pdf(s):
+    s = np.asarray(s, dtype=float)
+    in_range = (s >= 0.0) & (s <= 100.0)
+    # Any non-negative scale is fine.
+    return np.where(in_range, 42.0 * (s / 100.0) ** 2, 0.0)
+
+spectrum_cdf = SpectrumCDF(pdf_to_cdf(scaled_pdf, s_min=0.0, s_max=100.0))
+events = np.array([...])
+ul = upper_limit(events, spectrum_cdf, C=0.9)
+```
+
 Example: signal PDF proportional to $s^2$ on $[s\_{\mathrm{min}}, s\_{\mathrm{max}}]$. The CDF is
 $F(s) = (s^3 - s\_{\mathrm{min}}^3) / (s\_{\mathrm{max}}^3 - s\_{\mathrm{min}}^3)$, normalized to
 $[0, 1]$ over that interval:

@@ -31,13 +31,19 @@ def pdf_to_cdf(
     s_min: float,
     s_max: float,
     n_grid: int = 4096,
+    return_mu: bool = False,
     **pdf_kwargs,
-) -> Callable[[np.ndarray], np.ndarray]:
+) -> (
+    Callable[[np.ndarray], np.ndarray]
+    | tuple[Callable[[np.ndarray], np.ndarray], float]
+):
     """
-    Build a normalized CDF from an arbitrary scaled PDF on [s_min, s_max].
+    Build a normalized CDF from a non-negative rate/PDF on [s_min, s_max].
 
-    The input function can be any non-negative shape proportional to a PDF;
-    absolute normalization is inferred numerically.
+    The input function can be any non-negative shape proportional to a PDF
+    or a physical rate dN/ds. Absolute normalization is inferred numerically.
+    If `return_mu=True`, the integrated rate
+    `mu = integral_{s_min}^{s_max} pdf(s) ds` is returned together with the CDF.
     Additional keyword arguments are forwarded to `pdf`.
     """
     if s_max <= s_min:
@@ -84,6 +90,8 @@ def pdf_to_cdf(
         s_arr = np.asarray(s, dtype=float)
         return np.interp(s_arr, s_grid, cdf_grid, left=0.0, right=1.0)
 
+    if return_mu:
+        return F, total
     return F
 
 

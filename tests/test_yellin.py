@@ -78,6 +78,17 @@ class TestSpectrumHelpers:
         expected = np.array([0.0, 0.125, 1.0])  # ((s-0.2)^3)/(0.8^3)
         np.testing.assert_allclose(cdf(x), expected, atol=3e-3, rtol=0)
 
+    def test_pdf_to_cdf_return_mu(self):
+        cdf, mu = pdf_to_cdf(
+            lambda s: 5.0 * np.asarray(s, dtype=float) ** 2,
+            0.0,
+            1.0,
+            return_mu=True,
+        )
+        x = np.linspace(0.0, 1.0, 20)
+        np.testing.assert_allclose(cdf(x), x**3, atol=2e-3, rtol=0)
+        assert mu == pytest.approx(5.0 / 3.0, rel=0, abs=2e-4)
+
     def test_pdf_to_cdf_negative_raises(self):
         with pytest.raises(ValueError, match="non-negative"):
             pdf_to_cdf(lambda s: np.asarray(s, dtype=float) - 0.5, 0.0, 1.0)
@@ -148,6 +159,20 @@ class TestUpperLimit:
         ul_total = upper_limit(events, spec, C=0.9)
         assert ul < ul_total
 
+    def test_mu_strength_scaling(self):
+        np.random.seed(44)
+        events = np.random.uniform(0, 1, 80)
+        spec = SpectrumCDF(uniform_spectrum(0, 1))
+        ul = upper_limit(events, spec, C=0.9)
+        mu_ref = 125.0
+        strength_ul = upper_limit(events, spec, C=0.9, mu=mu_ref)
+        assert strength_ul == pytest.approx(ul / mu_ref, rel=0, abs=1e-10)
+
+    def test_mu_invalid_raises(self):
+        spec = SpectrumCDF(uniform_spectrum(0, 1))
+        with pytest.raises(ValueError, match="positive finite"):
+            upper_limit(np.array([0.1, 0.2]), spec, mu=0.0)
+
 
 class TestBinnedSupport:
     """Test binned-data support (paper Section IV)."""
@@ -198,3 +223,18 @@ class TestBinnedSupport:
         ul = upper_limit_binned(counts, C=0.9)
         assert ul > 0
         assert ul < 500
+
+    def test_upper_limit_binned_mu_strength_scaling(self):
+        rng = np.random.default_rng(45)
+        events = rng.uniform(0, 1, 120)
+        spec = SpectrumCDF(uniform_spectrum(0, 1))
+        counts = events_to_binned_counts(events, spec, n_bins=100)
+        ul = upper_limit_binned(counts, C=0.9)
+        mu_ref = 200.0
+        strength_ul = upper_limit_binned(counts, C=0.9, mu=mu_ref)
+        assert strength_ul == pytest.approx(ul / mu_ref, rel=0, abs=1e-10)
+
+    def test_upper_limit_binned_mu_invalid_raises(self):
+        counts = np.array([1, 2, 0], dtype=int)
+        with pytest.raises(ValueError, match="positive finite"):
+            upper_limit_binned(counts, mu=-1.0)

@@ -20,6 +20,7 @@ def upper_limit(
     C: float = 0.9,
     fmin: float = 0.0,
     known_background: float = 0.0,
+    mu: float | None = None,
 ) -> float:
     """
     Compute C-confidence upper limit on signal using high-statistics
@@ -31,10 +32,16 @@ def upper_limit(
         C: Confidence level (default 0.9).
         fmin: Minimum interval fraction (default 0).
         known_background: Known background to subtract from result.
+        mu: Optional model signal expectation on [s_min, s_max]. If provided,
+            returns the upper limit on signal strength (mu_ul / mu).
 
     Returns:
-        Upper limit on signal (total expected events - known_background).
+        If mu is None: upper limit on signal (total expected events -
+        known_background). If mu is provided: upper limit on signal strength.
     """
+    if mu is not None and (not np.isfinite(mu) or mu <= 0):
+        raise ValueError("mu must be a positive finite number when provided")
+
     F_values = events_to_F(events, spectrum_cdf)
     if F_values.size == 0:
         return 0.0
@@ -59,7 +66,10 @@ def upper_limit(
     except ValueError:
         return 0.0
 
-    return max(0.0, mu_total - known_background)
+    ul_signal = max(0.0, mu_total - known_background)
+    if mu is not None:
+        return ul_signal / mu
+    return ul_signal
 
 
 def upper_limit_binned(
@@ -67,6 +77,7 @@ def upper_limit_binned(
     C: float = 0.9,
     fmin: float = 0.0,
     known_background: float = 0.0,
+    mu: float | None = None,
     binned_table_path=None,
     fallback_unbinned_cbar: bool = True,
 ) -> float:
@@ -78,13 +89,19 @@ def upper_limit_binned(
         C: Confidence level (default 0.9).
         fmin: Minimum interval fraction (default 0).
         known_background: Known background to subtract from result.
+        mu: Optional model signal expectation in the analyzed region. If
+            provided, returns the upper limit on signal strength (mu_ul / mu).
         binned_table_path: Optional path to binned C̄Max table.
         fallback_unbinned_cbar: If True, use unbinned C̄Max table when a
             dedicated binned table is unavailable.
 
     Returns:
-        Upper limit on signal (total expected events - known_background).
+        If mu is None: upper limit on signal (total expected events -
+        known_background). If mu is provided: upper limit on signal strength.
     """
+    if mu is not None and (not np.isfinite(mu) or mu <= 0):
+        raise ValueError("mu must be a positive finite number when provided")
+
     counts = np.asarray(counts)
     if counts.ndim != 1:
         raise ValueError("counts must be a 1D array")
@@ -125,4 +142,7 @@ def upper_limit_binned(
     except ValueError:
         return 0.0
 
-    return max(0.0, mu_total - known_background)
+    ul_signal = max(0.0, mu_total - known_background)
+    if mu is not None:
+        return ul_signal / mu
+    return ul_signal

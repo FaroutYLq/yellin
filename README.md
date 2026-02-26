@@ -33,6 +33,12 @@ spectrum_cdf = SpectrumCDF(uniform_spectrum(s_min=0, s_max=100))
 ul = upper_limit(events, spectrum_cdf, C=0.9)
 print(f"90% CL upper limit: {ul}")
 
+# Optional: if your reference model predicts mu_ref signal events in this
+# range, pass mu=mu_ref to get an upper limit on signal strength (mu_ul / mu_ref)
+mu_ref = 120.0
+strength_ul = upper_limit(events, spectrum_cdf, C=0.9, mu=mu_ref)
+print(f"90% CL upper limit on strength: {strength_ul}")
+
 # With known background subtraction
 ul_signal = upper_limit(
     events, spectrum_cdf, C=0.9, known_background=10.0
@@ -58,24 +64,30 @@ When you run the call above, the library:
 The spectrum CDF $F(s)$ must be **normalized**: $F(s)$ must be non-decreasing
 and map your observable range to $[0, 1]$, i.e. $F(s\_{\mathrm{min}}) = 0$ and
 $F(s\_{\mathrm{max}}) = 1$ (or the appropriate limits for your support). The method
-uses only the shape of the CDF, not the absolute normalization of the signal.
+uses the CDF shape for event mapping. If you also provide a model $\mu$ to
+`upper_limit(..., mu=...)`, the return value becomes a limit on signal strength.
 
-If you have an arbitrary function proportional to the signal PDF (not
-necessarily normalized), use `pdf_to_cdf`:
+If you have a differential signal rate $dN/ds$ (or any scaled non-negative
+PDF), use `pdf_to_cdf`. With `return_mu=True`, you also get
+$\mu=\int\_{s\_{\min}}^{s\_{\max}} dN/ds\,ds$:
 
 ```python
 import numpy as np
 from yellin import SpectrumCDF, pdf_to_cdf, upper_limit
 
-def scaled_pdf(s):
+def signal_rate(s):
     s = np.asarray(s, dtype=float)
     in_range = (s >= 0.0) & (s <= 100.0)
-    # Any non-negative scale is fine.
+    # Example dN/ds; its integral over [0, 100] is mu for this model.
     return np.where(in_range, 42.0 * (s / 100.0) ** 2, 0.0)
 
-spectrum_cdf = SpectrumCDF(pdf_to_cdf(scaled_pdf, s_min=0.0, s_max=100.0))
+spectrum_fn, mu_model = pdf_to_cdf(
+    signal_rate, s_min=0.0, s_max=100.0, return_mu=True
+)
+spectrum_cdf = SpectrumCDF(spectrum_fn)
 events = np.array([...])
-ul = upper_limit(events, spectrum_cdf, C=0.9)
+mu_ul = upper_limit(events, spectrum_cdf, C=0.9)
+strength_ul = upper_limit(events, spectrum_cdf, C=0.9, mu=mu_model)
 ```
 
 Example: signal PDF proportional to $s^2$ on $[s\_{\mathrm{min}}, s\_{\mathrm{max}}]$. The CDF is
@@ -125,6 +137,11 @@ counts = events_to_binned_counts(events, spectrum_cdf, n_bins=1000)
 
 ul_binned = upper_limit_binned(counts, C=0.9)
 print(f"90% CL upper limit (binned): {ul_binned}")
+
+# Optional: convert to a strength limit using a reference-model mu
+mu_ref = 350.0
+strength_ul_binned = upper_limit_binned(counts, C=0.9, mu=mu_ref)
+print(f"90% CL upper limit on strength (binned): {strength_ul_binned}")
 ```
 
 Here, `fmin` is omitted, so the default `fmin=0.0` is used. This call is

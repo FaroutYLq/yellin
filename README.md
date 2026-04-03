@@ -1,5 +1,7 @@
 # yellin
 
+[![DOI](https://zenodo.org/badge/1165826571.svg)](https://doi.org/10.5281/zenodo.19411258)
+
 Python implementation of the **high-statistics optimum interval method** from
 
 > S. Yellin, "Extending the Optimum Interval Method," arXiv:0709.2701 (2007)
